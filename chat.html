@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Live Chat Ilimitado</title>
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body, html { height: 100%; background: transparent; overflow: hidden; }
+        #chat-container { display: flex; flex-direction: column; height: 100vh; background: rgba(255, 255, 255, 0.95); }
+        #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; }
+        .msg-box { padding: 8px 12px; border-radius: 12px; max-width: 85%; word-wrap: break-word; font-size: 14px; animation: fadeIn 0.2s ease; }
+        .msg-other { background: #f1f0f0; align-self: flex-start; color: #333; }
+        .username { font-weight: bold; display: block; font-size: 11px; color: #666; margin-bottom: 2px; }
+        #input-area { display: flex; padding: 10px; background: #fff; border-top: 1px solid #eee; }
+        #message-input { flex: 1; padding: 10px 15px; border: 1px solid #ddd; border-radius: 20px; outline: none; font-size: 14px; }
+        #send-btn { background: #0084ff; color: white; border: none; padding: 0 18px; margin-left: 8px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+<div id="chat-container">
+    <div id="messages"></div>
+    <div id="input-area">
+        <input type="text" id="message-input" placeholder="Digite sua mensagem..." autocomplete="off">
+        <button id="send-btn">Enviar</button>
+    </div>
+</div>
+<script>
+    const firebaseConfig = {
+        databaseURL: "https://firebaseio.com"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const urlParams = new URLSearchParams(window.location.search);
+    const salaId = urlParams.get('sala') || 'sala_geral';
+    const userName = urlParams.get('user') || 'Anônimo';
+    const messagesRef = database.ref('salas/' + salaId);
+    const messagesContainer = document.getElementById('messages');
+    const messageInput = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-btn');
+    messagesRef.limitToLast(50).on('child_added', (snapshot) => {
+        const data = snapshot.val();
+        renderMessage(data.username, data.text);
+    });
+    function renderMessage(username, text) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'msg-box msg-other';
+        msgDiv.innerHTML = `<span class="username">${username}</span>${text}`;
+        messagesContainer.appendChild(msgDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    function sendMessage() {
+        const text = messageInput.value.trim();
+        if (text === '') return;
+        messagesRef.push({
+            username: userName,
+            text: text,
+            timestamp: Date.now()
+        });
+        messageInput.value = '';
+    }
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+</script>
+</body>
+</html>
